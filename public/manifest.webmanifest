@@ -1,7 +1,7 @@
 {
-  "name": "UNO Punkte",
-  "short_name": "UNO 300",
-  "description": "UNO-Punkte zählen ohne Zettel – alles lokal im Browser.",
+  "name": "Spiele – Punktezähler",
+  "short_name": "Spiele",
+  "description": "Punkte zählen für UNO, 10'000erlen und Sterbslen – ohne Zettel, alles lokal im Browser.",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

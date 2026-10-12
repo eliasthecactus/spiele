@@ -1,9 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#14181f"/>
-  <g transform="rotate(-12 256 256)">
-    <rect x="136" y="76" width="240" height="360" rx="32" fill="#fff"/>
-    <rect x="152" y="92" width="208" height="328" rx="22" fill="#e5383b"/>
-    <ellipse cx="256" cy="256" rx="92" ry="150" transform="rotate(30 256 256)" fill="#fff"/>
-    <text x="256" y="292" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="104" fill="#e5383b" transform="rotate(-18 256 256)">300</text>
+  <g transform="rotate(-14 200 250)">
+    <rect x="86" y="86" width="210" height="310" rx="28" fill="#fff"/>
+    <rect x="100" y="100" width="182" height="282" rx="20" fill="#e5383b"/>
+    <ellipse cx="191" cy="241" rx="78" ry="128" transform="rotate(30 191 241)" fill="#fff"/>
+    <text x="191" y="272" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="64" fill="#e5383b" transform="rotate(-18 191 241)">UNO</text>
+  </g>
+  <g transform="rotate(12 340 330)">
+    <rect x="236" y="226" width="208" height="208" rx="40" fill="#f2f4f8" stroke="#14181f" stroke-width="10"/>
+    <g fill="#2f7fe0">
+      <circle cx="290" cy="280" r="20"/><circle cx="390" cy="280" r="20"/>
+      <circle cx="340" cy="330" r="20"/>
+      <circle cx="290" cy="380" r="20"/><circle cx="390" cy="380" r="20"/>
+    </g>
   </g>
 </svg>

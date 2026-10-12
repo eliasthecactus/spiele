@@ -1,6 +1,9 @@
 // Offline-Cache für die App-Dateien. Spielstände liegen im localStorage, nicht hier.
-const CACHE = 'uno300-v1';
-const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'spiele-v1';
+const ASSETS = [
+  './', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
+  'js/main.js', 'js/core.js', 'js/uno.js', 'js/zehntausend.js', 'js/sterbslen.js',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

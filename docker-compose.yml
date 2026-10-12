@@ -1,7 +1,7 @@
 services:
-  uno-punkte:
+  spiele:
     build: .
-    image: uno-punkte:latest
+    image: spiele:latest
     ports:
       - "8080:80"
     restart: unless-stopped
