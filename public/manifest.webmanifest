@@ -1,0 +1,15 @@
+{
+  "name": "UNO Punkte",
+  "short_name": "UNO 300",
+  "description": "UNO-Punkte zählen ohne Zettel – alles lokal im Browser.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14181f",
+  "theme_color": "#14181f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
