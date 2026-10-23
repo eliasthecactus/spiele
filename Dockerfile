@@ -10,6 +10,6 @@ COPY api/entrypoint.sh /entrypoint.sh
 COPY frontend frontend
 VOLUME /data
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" >/dev/null || exit 1
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "--disable-warning=ExperimentalWarning", "api/src/server.js"]
