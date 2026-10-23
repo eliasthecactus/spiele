@@ -323,18 +323,25 @@ function groupsModal() {
     </div>`;
 }
 
+/** Kurzübersicht auf der Startseite: Anzahl Spiele, wer am meisten gewinnt, zuletzt gespielt. */
 function homeCard() {
   const games = store.games.filter(known);
-  const last = newestFirst(games)[0];
-  const sub = last ? `${games.length} ${games.length === 1 ? 'Spiel' : 'Spiele'} · zuletzt ${GAMES[last.game].title} am ${date(last.end)}`
-    : 'Siege, Gruppen und Duelle';
-  return `<div class="gcard t-stats">
-    <button class="gmain" data-act="open-page" data-id="stats">
-      <span class="logo stats">📊</span>
-      <span class="gtext"><b>Statistik</b><small>${esc(sub)}</small></span>
+  const head = '<div class="section-title">Statistik</div>';
+  if (!games.length) {
+    return `${head}<button class="spanel empty" data-act="open-page" data-id="stats">
+      <span class="ic">📊</span>
+      <span class="gtext"><b>Noch keine fertigen Spiele</b>
+        <small>Danach siehst du hier, wer am meisten gewinnt – auch in welcher Runde.</small></span>
       <span class="chev">›</span>
-    </button>
-  </div>`;
+    </button>`;
+  }
+  const top = leaderboard(games)[0];
+  const last = newestFirst(games)[0];
+  return `${head}<button class="spanel" data-act="open-page" data-id="stats">
+    <span class="sp"><b>${fmt(games.length)}</b><small>${games.length === 1 ? 'Spiel' : 'Spiele'}</small></span>
+    <span class="sp"><b>👑 ${esc(top.name)}</b><small>${top.wins} ${top.wins === 1 ? 'Sieg' : 'Siege'}</small></span>
+    <span class="sp"><b>${esc(GAMES[last.game].title)}</b><small>zuletzt ${date(last.end)}</small></span>
+  </button>`;
 }
 
 function act(a, el) {

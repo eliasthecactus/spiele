@@ -233,12 +233,17 @@ function renderAccount() {
 }
 
 function homeCard() {
-  const on = acc().loggedIn;
-  return `<button class="acct-row ${on ? 'on' : ''}" data-act="open-page" data-id="account">
-    <span class="ic">${on ? '☁️' : '🔑'}</span>
-    <span class="gtext"><b>${on ? 'Angemeldet' : 'Online-Modus'}</b>
-      <small>${on ? 'Statistik wird mit deinem Konto abgeglichen' : 'Statistik mit Passkey sichern – freiwillig'}</small></span>
-    <span class="chev">›</span>
+  if (acc().loggedIn) {
+    return `<button class="acct-card on" data-act="open-page" data-id="account">
+      <span class="ic">☁️</span>
+      <span class="gtext"><b>Angemeldet</b><small>Deine Statistik ist im Konto gesichert</small></span>
+      <span class="chev">›</span>
+    </button>`;
+  }
+  return `<button class="acct-card" data-act="open-page" data-id="account">
+    <span class="ic">🔑</span>
+    <span class="gtext"><b>Statistik sichern</b><small>Freiwillig, nur mit Passkey</small></span>
+    <span class="pill">Anmelden</span>
   </button>`;
 }
 

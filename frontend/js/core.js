@@ -365,8 +365,7 @@ function saveOrder(c) {
 function renderHome() {
   return `${topbar('Spiele', { badge: '<span class="logo home">🎲</span>' })}
   <div class="content">
-    <p class="hint">Punkte zählen ohne Zettel. ${app.account && app.account.loggedIn
-      ? 'Die Statistik ist in deinem Konto gesichert.' : 'Alles bleibt auf diesem Gerät.'}</p>
+    <p class="hint">Punkte zählen ohne Zettel.</p>
     ${ORDER.map(id => {
       const mod = GAMES[id];
       const st = app.games[id] ? mod.status(app.games[id]) : null;
@@ -375,9 +374,9 @@ function renderHome() {
           ${mod.badge}
           <span class="gtext"><b>${esc(mod.title)}</b><small>${esc(mod.tagline)}</small>
             ${st ? `<span class="gstatus">${esc(st)}</span>` : ''}</span>
-          <span class="chev">›</span>
         </button>
-        <button class="grules" data-act="rules" data-id="${id}">📖 Anleitung</button>
+        <button class="grules" data-act="rules" data-id="${id}" aria-label="Anleitung ${esc(mod.title)}">
+          <span class="ic">📖</span>Regeln</button>
       </div>`;
     }).join('')}
     ${Object.values(PAGES).map(p => (p.homeCard ? p.homeCard() : '')).join('')}

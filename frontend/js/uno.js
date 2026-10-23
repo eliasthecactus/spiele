@@ -62,10 +62,10 @@ function standings() {
 function anyOver() {
   const s = S();
   const t = totals();
-  return s.players.some(p => t[p.id] > s.target);
+  return s.players.some(p => t[p.id] >= s.target);
 }
 
-/** Wenn niemand mehr über dem Ziel ist, wird ein Spielende/Ausspielen zurückgesetzt. */
+/** Wenn niemand mehr das Ziel erreicht hat, wird ein Spielende/Ausspielen zurückgesetzt. */
 function reconcileEnd() {
   const s = S();
   if (!anyOver()) {
@@ -91,11 +91,11 @@ function renderStandingsList(clickable) {
   return `<ol class="standings">${standings().map((p, i, arr) => {
     const rank = i > 0 && arr[i - 1].pts === p.pts ? '' : i + 1;
     const pct = Math.min(100, (p.pts / t) * 100);
-    const cls = p.pts > t ? 'over' : pct >= 80 ? 'warn' : '';
+    const cls = p.pts >= t ? 'over' : pct >= 80 ? 'warn' : '';
     const rest = t - p.pts;
-    const sub = p.pts > t ? `${-rest} über dem Ziel` : `noch ${rest} bis ${t}`;
+    const sub = p.pts > t ? `${-rest} über dem Ziel` : p.pts === t ? 'Ziel erreicht' : `noch ${rest} bis ${t}`;
     const tag = p.id === s.nextShufflerId && s.phase === 'game' ? '<span class="tag">🃏 mischt</span>' : '';
-    return `<li class="${p.pts > t ? 'over-target' : ''}"><button ${clickable ? `data-act="correct" data-id="${p.id}"` : 'disabled'}>
+    return `<li class="${p.pts >= t ? 'over-target' : ''}"><button ${clickable ? `data-act="correct" data-id="${p.id}"` : 'disabled'}>
       <span class="rank">${rank}</span>
       <span class="pname">${esc(p.name)}${tag}</span>
       <span class="pts">${p.pts}</span>
@@ -108,7 +108,7 @@ function renderStandingsList(clickable) {
 function renderGame() {
   const s = S();
   const banner = s.endDecision === 'ausspielen'
-    ? '<div class="banner">Das Ziel ist überschritten – <b>es wird ausgespielt</b>. Spiel beenden, sobald ihr fertig seid.</div>' : '';
+    ? '<div class="banner">Das Ziel ist erreicht – <b>es wird ausgespielt</b>. Spiel beenden, sobald ihr fertig seid.</div>' : '';
   return `${topbar(`Ziel ${s.target}`, { back: 'home', menu: true, badge: BADGE })}
   <div class="content">
     ${dealerCard()}
@@ -270,9 +270,9 @@ function renderOver() {
 function renderEndModal() {
   const s = S();
   const t = totals();
-  const over = s.players.filter(p => t[p.id] > s.target);
-  return `<h2>Ziel überschritten!</h2>
-    <p>${over.map(p => `<b style="color:var(--text)">${esc(p.name)}</b> (${t[p.id]})`).join(', ')} ${over.length > 1 ? 'sind' : 'ist'} über ${s.target} Punkten.
+  const over = s.players.filter(p => t[p.id] >= s.target);
+  return `<h2>Ziel erreicht!</h2>
+    <p>${over.map(p => `<b style="color:var(--text)">${esc(p.name)}</b> (${t[p.id]})`).join(', ')} ${over.length > 1 ? 'haben' : 'hat'} ${s.target} Punkte erreicht.
     Wird noch ausgespielt oder ist das Spiel fertig?</p>
     <div class="btn-row"><button class="btn ghost" data-act="end-play">Ausspielen</button>
     <button class="btn primary" data-act="finish-now">Spiel fertig</button></div>
@@ -347,7 +347,7 @@ function editTarget() {
   const s = S();
   numberModal({
     title: 'Ziel ändern',
-    text: 'Das Spiel endet, sobald jemand <b>über</b> diesem Wert ist.',
+    text: 'Das Spiel endet, sobald jemand diesen Wert <b>erreicht</b>.',
     sub: `bisher ${s.target}`,
     onOk(v) {
       const n = parseInt(v, 10);
@@ -516,7 +516,7 @@ function records(games) {
 
 const RULES = `
   <h2>Ziel</h2>
-  <p>Wer am Schluss <b>am wenigsten Punkte</b> hat, gewinnt. Gespielt wird, bis jemand <b>über 300</b> Punkte hat
+  <p>Wer am Schluss <b>am wenigsten Punkte</b> hat, gewinnt. Gespielt wird, bis jemand <b>300 Punkte</b> erreicht
   (das Ziel lässt sich ändern).</p>
 
   <h2>Ablauf einer Runde</h2>
@@ -534,7 +534,7 @@ const RULES = `
   </table>
 
   <h2>Spielende</h2>
-  <p>Sobald jemand über dem Ziel ist, fragt die App: wird noch <b>ausgespielt</b> oder ist das Spiel <b>fertig</b>?
+  <p>Sobald jemand das Ziel erreicht (300 oder mehr), fragt die App: wird noch <b>ausgespielt</b> oder ist das Spiel <b>fertig</b>?
   Wer dann am wenigsten Punkte hat, gewinnt.</p>
 
   <h2>So funktioniert die App</h2>
@@ -567,7 +567,7 @@ export default {
       return setupScreen(this, s, {
         hint: 'Reihenfolge <b>gegen den Uhrzeigersinn</b> eintragen – so wandert das Mischen. Mit 🃏 festlegen, wer die erste Runde mischt.',
         fields: `<button class="field" data-act="edit-target">
-          <span>Ziel (Spielende über …)</span><span class="val">${s.target} ›</span></button>`,
+          <span>Ziel (Spielende ab …)</span><span class="val">${s.target} ›</span></button>`,
       });
     }
     if (s.view === 'history') return renderHistory();

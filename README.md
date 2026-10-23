@@ -2,7 +2,7 @@
 
 Punktezähler für Spieleabende, optimiert fürs Handy. Enthalten sind:
 
-- **UNO** – auf 300, wer am wenigsten Punkte hat, gewinnt
+- **UNO** – bis jemand 300 erreicht, wer am wenigsten Punkte hat, gewinnt
 - **10'000erlen** – Würfelspiel mit 6 Würfeln, wer zuerst 10'000 hat, gewinnt
 - **Sterbslen** – Würfelspiel mit 6 Würfeln rund um die 30, wer übrig bleibt, gewinnt
 
