@@ -16,16 +16,36 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-// Netzwerk zuerst (für Updates), bei fehlender Verbindung aus dem Cache. Die Schnittstelle (/api) wird nie zwischengespeichert.
+// Bei schlechtem Empfang nicht ewig warten: nach so vielen ms gilt die gespeicherte Version.
+const TIMEOUT = 2500;
+// War das Netz einmal zu langsam, kommen die Dateien eine Weile direkt aus dem Cache.
+// Sonst würde jede Datei der Kette (Seite → main.js → Spiele …) nochmals warten.
+const SLOW_FOR = 30000;
+let slowUntil = 0;
+
+/**
+ * Netzwerk zuerst (für Updates). Ohne Verbindung oder wenn das Netz zu lange braucht, aus dem Cache;
+ * die Antwort aus dem Netz aktualisiert den Cache dann im Hintergrund.
+ */
+async function respond(e) {
+  const cached = () => caches.match(e.request, { ignoreSearch: true });
+  const net = fetch(e.request).then(res => {
+    if (res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy));
+    }
+    return res;
+  });
+  e.waitUntil(net.catch(() => {}));
+  if (Date.now() < slowUntil) return (await cached()) || net;
+  const first = await Promise.race([net.catch(() => null), new Promise(r => setTimeout(r, TIMEOUT, 'slow'))]);
+  if (first && first !== 'slow') return first;
+  if (first === 'slow') slowUntil = Date.now() + SLOW_FOR;
+  return (await cached()) || net;
+}
+
+// Die Schnittstelle (/api) wird nie zwischengespeichert.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).pathname.startsWith('/api/')) return;
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-        return res;
-      })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }))
-  );
+  e.respondWith(respond(e));
 });
