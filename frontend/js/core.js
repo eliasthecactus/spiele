@@ -3,7 +3,8 @@
  * Anleitungen und die Event-Verteilung. Alles lokal im Browser (localStorage).
  *
  * Jedes Spiel ist ein Modul, das sich mit registerGame() anmeldet und seinen
- * eigenen Spielstand unter app.games[id] hat.
+ * eigenen Spielstand unter app.games[id] hat. Weitere Seiten (Statistik, Konto)
+ * melden sich mit registerPage() an.
  */
 
 const STORE_KEY = 'spiele.v1';
@@ -12,10 +13,10 @@ export const MAX_PLAYERS = 10;
 
 // ---------- Persistenz ----------
 
-function storageGet(key) {
+export function storageGet(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
-function storageSet(key, value) {
+export function storageSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* privater Modus o.ä. */ }
 }
 
@@ -37,7 +38,15 @@ function loadApp() {
 
 export const app = loadApp();
 
+const saveHooks = [];
+
+/** `fn` läuft bei jedem Speichern, z.B. um fertige Spiele in die Statistik zu übernehmen. */
+export function onSave(fn) {
+  saveHooks.push(fn);
+}
+
 export function save() {
+  saveHooks.forEach(fn => fn());
   storageSet(STORE_KEY, app);
 }
 
@@ -52,6 +61,13 @@ const ORDER = [];
 export function registerGame(mod) {
   GAMES[mod.id] = mod;
   ORDER.push(mod.id);
+}
+
+/** Seiten neben den Spielen: { id, render(), act(act, el), modal?(m), homeCard?() } */
+export const PAGES = {};
+
+export function registerPage(page) {
+  PAGES[page.id] = page;
 }
 
 export function game(id) {
@@ -127,10 +143,11 @@ export function checkNames(players) {
 export function render() {
   const root = document.getElementById('app');
   if (app.screen === 'rules' && !GAMES[app.rulesFor]) app.screen = 'home';
-  if (app.screen !== 'rules' && app.screen !== 'home' && !GAMES[app.screen]) app.screen = 'home';
+  if (app.screen !== 'rules' && app.screen !== 'home' && !GAMES[app.screen] && !PAGES[app.screen]) app.screen = 'home';
   const c = current();
-  root.className = `t-${c ? c.mod.id : app.screen === 'rules' ? app.rulesFor : 'home'}`;
-  const html = app.screen === 'rules' ? renderRules(GAMES[app.rulesFor]) : c ? c.mod.render(c.s) : renderHome();
+  const page = PAGES[app.screen];
+  root.className = `t-${c ? c.mod.id : app.screen === 'rules' ? app.rulesFor : app.screen}`;
+  const html = app.screen === 'rules' ? renderRules(GAMES[app.rulesFor]) : c ? c.mod.render(c.s) : page ? page.render() : renderHome();
   const scroll = window.scrollY;
   root.innerHTML = html + renderModal(c);
   // Platz für den unten angedockten Ziffernblock schaffen
@@ -313,8 +330,10 @@ function renderModal(c) {
         <button class="btn green" data-act="order-save">Übernehmen</button></div>`;
       break;
     }
-    default:
-      inner = c && c.mod.modal ? c.mod.modal(c.s, m) : '';
+    default: {
+      const page = PAGES[app.screen];
+      inner = c && c.mod.modal ? c.mod.modal(c.s, m) : page && page.modal ? page.modal(m) : '';
+    }
   }
   return `<div class="backdrop" data-act="${m.locked ? 'noop' : 'backdrop'}"><div class="sheet" role="dialog" aria-modal="true">${inner}</div></div>`;
 }
@@ -346,7 +365,8 @@ function saveOrder(c) {
 function renderHome() {
   return `${topbar('Spiele', { badge: '<span class="logo home">🎲</span>' })}
   <div class="content">
-    <p class="hint">Punkte zählen ohne Zettel. Alles bleibt auf diesem Gerät.</p>
+    <p class="hint">Punkte zählen ohne Zettel. ${app.account && app.account.loggedIn
+      ? 'Die Statistik ist in deinem Konto gesichert.' : 'Alles bleibt auf diesem Gerät.'}</p>
     ${ORDER.map(id => {
       const mod = GAMES[id];
       const st = app.games[id] ? mod.status(app.games[id]) : null;
@@ -360,6 +380,7 @@ function renderHome() {
         <button class="grules" data-act="rules" data-id="${id}">📖 Anleitung</button>
       </div>`;
     }).join('')}
+    ${Object.values(PAGES).map(p => (p.homeCard ? p.homeCard() : '')).join('')}
   </div>`;
 }
 
@@ -374,7 +395,7 @@ function renderRules(mod) {
   </div>`;
 }
 
-function goScreen(screen) {
+export function goScreen(screen) {
   ui.modal = null;
   app.screen = screen;
   save();
@@ -406,7 +427,8 @@ document.addEventListener('click', e => {
 
     // Navigation
     case 'home': return goScreen('home');
-    case 'open-game': return goScreen(id);
+    case 'open-game':
+    case 'open-page': return goScreen(id);
     case 'rules':
       app.rulesFor = id || (c && c.mod.id);
       app.rulesBack = c ? c.mod.id : 'home';
@@ -417,6 +439,7 @@ document.addEventListener('click', e => {
     case 'order-save': return saveOrder(c);
   }
 
+  if (PAGES[app.screen]) return PAGES[app.screen].act(act, el);
   if (!c) return;
   const s = c.s;
 

@@ -7,7 +7,7 @@
  * früheren Zug automatisch auf alles Spätere.
  */
 import {
-  game, resetGame, save, render, show, ui, toast, esc, fmt, topbar, keypad, applyKey, parseExpr,
+  game, resetGame, save, render, show, ui, toast, esc, fmt, uid, topbar, keypad, applyKey, parseExpr,
   nextAfter, setupScreen, confirmModal, numberModal, rosterPlayers, rememberPlayers, checkNames,
 } from './core.js';
 
@@ -202,7 +202,7 @@ function startGame() {
   const err = checkNames(s.players);
   if (err) return toast(err);
   if (!byId(s.firstId)) s.firstId = s.players[0].id;
-  Object.assign(s, { phase: 'game', view: 'game', log: [], draft: '', ended: false, startedAt: Date.now() });
+  Object.assign(s, { phase: 'game', view: 'game', log: [], draft: '', ended: false, startedAt: Date.now(), gid: uid() });
   rememberPlayers(s.players);
   save();
   render();
@@ -373,6 +373,56 @@ function key(s, k) {
   render();
 }
 
+// ---------- Statistik ----------
+
+/**
+ * Rangliste für die Statistik, sobald jemand gewonnen hat (oder von Hand beendet wurde).
+ * Spielen die anderen weiter, wird der Eintrag laufend nachgeführt.
+ */
+function result(s) {
+  const r = replay(s);
+  if ((!r.done.length && !r.over) || !hasTurns(s)) return null;
+  const per = {};
+  s.players.forEach(p => { per[p.id] = { turns: 0, zeros: 0, best: 0 }; });
+  s.log.forEach(e => {
+    const x = e.t === 'turn' && per[e.pid];
+    if (!x) return;
+    x.turns++;
+    if (!e.pts) x.zeros++;
+    x.best = Math.max(x.best, e.pts);
+  });
+  const rest = s.players.filter(p => !r.done.includes(p.id));
+  const place = id => {
+    const k = r.done.indexOf(id);
+    return k >= 0 ? k + 1 : r.done.length + 1 + rest.filter(q => r.score[q.id] > r.score[id]).length;
+  };
+  return {
+    end: s.log[s.log.length - 1].ts,
+    rounds: s.log.filter(e => e.t === 'turn').length,
+    players: s.players.map(p => ({ name: p.name, place: place(p.id), score: r.score[p.id], ...per[p.id] })),
+  };
+}
+
+function playerStats(entries) {
+  const turns = entries.reduce((a, e) => a + (e.p.turns || 0), 0);
+  const zeros = entries.reduce((a, e) => a + (e.p.zeros || 0), 0);
+  return [
+    ['Bester Zug', fmt(Math.max(...entries.map(e => e.p.best || 0)))],
+    ['Züge', fmt(turns)],
+    ['Nuller', `${fmt(zeros)}${turns ? ` · ${Math.round((zeros / turns) * 100)}%` : ''}`],
+  ];
+}
+
+function records(games) {
+  const all = games.flatMap(g => g.players.map(p => ({ g, p })));
+  const best = all.reduce((a, e) => (!a || (e.p.best || 0) > (a.p.best || 0) ? e : a), null);
+  const zeros = all.reduce((a, e) => (!a || (e.p.zeros || 0) > (a.p.zeros || 0) ? e : a), null);
+  return [
+    best && { label: 'Bester Zug', value: fmt(best.p.best || 0), who: best.p.name, g: best.g },
+    zeros && zeros.p.zeros && { label: 'Meiste Nuller in einem Spiel', value: zeros.p.zeros, who: zeros.p.name, g: zeros.g },
+  ].filter(Boolean);
+}
+
 const RULES = `
   <h2>Ziel</h2>
   <p>Wer zuerst <b>10'000 Punkte</b> hat, gewinnt. Die anderen spielen weiter, bis die ganze Rangliste feststeht.</p>
@@ -422,6 +472,9 @@ export default {
   mark: { emoji: '🎲', first: 'beginnt', now: 'ist dran', verb: 'würfelt' },
   rules: RULES,
   fresh,
+  result,
+  playerStats,
+  records,
   status(s) {
     if (s.phase === 'setup') return null;
     const r = replay(s);

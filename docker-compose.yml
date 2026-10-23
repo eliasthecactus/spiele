@@ -2,6 +2,14 @@ services:
   spiele:
     build: .
     image: spiele:latest
+    container_name: spiele
     ports:
-      - "8080:80"
+      - "8080:3000"
+    environment:
+      # Öffentliche Adresse der App. Passkeys gelten nur für diese Domain (https, ausser für localhost).
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      # Langer Zufallswert zum Signieren der Anmeldungen, z.B. aus `openssl rand -hex 32`.
+      SECRET: ${SECRET:?SECRET setzen, z.B. mit openssl rand -hex 32}
+    volumes:
+      - ./container/spiele/data:/data
     restart: unless-stopped

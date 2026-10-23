@@ -11,7 +11,7 @@
  * Gespeichert wird nur ein Protokoll (log); der Stand wird daraus nachgerechnet.
  */
 import {
-  game, resetGame, save, render, show, ui, toast, esc, topbar, keypad, applyKey,
+  game, resetGame, save, render, show, ui, toast, esc, uid, topbar, keypad, applyKey,
   nextAfter, setupScreen, confirmModal, numberModal, rosterPlayers, rememberPlayers, checkNames,
 } from './core.js';
 
@@ -348,7 +348,7 @@ function startGame() {
   const err = checkNames(s.players);
   if (err) return toast(err);
   if (!byId(s.firstId)) s.firstId = s.players[0].id;
-  Object.assign(s, { phase: 'game', view: 'game', log: [], draft: emptyDraft(), ended: false, startedAt: Date.now() });
+  Object.assign(s, { phase: 'game', view: 'game', log: [], draft: emptyDraft(), ended: false, startedAt: Date.now(), gid: uid() });
   rememberPlayers(s.players);
   save();
   render();
@@ -550,6 +550,45 @@ function key(s, k) {
   render();
 }
 
+// ---------- Statistik ----------
+
+/** Rangliste für die Statistik, sobald nur noch einer übrig ist (oder von Hand beendet wurde). */
+function result(s) {
+  const r = replay(s);
+  if (!r.over || !hasTurns(s)) return null;
+  const turns = {};
+  s.log.forEach(e => { if (e.t === 'turn') turns[e.pid] = (turns[e.pid] || 0) + 1; });
+  const alive = s.players.filter(p => r.alive(p.id));
+  const place = id => (r.alive(id)
+    ? 1 + alive.filter(q => r.score[q.id] > r.score[id]).length
+    : placeOf(s, r, id));
+  return {
+    end: s.log[s.log.length - 1].ts,
+    rounds: s.log.filter(e => e.t === 'turn').length,
+    players: s.players.map(p => ({
+      name: p.name, place: place(p.id), score: r.alive(p.id) ? r.score[p.id] : 0, turns: turns[p.id] || 0,
+    })),
+  };
+}
+
+function playerStats(entries) {
+  const turns = entries.reduce((a, e) => a + (e.p.turns || 0), 0);
+  const last = entries.filter(e => e.p.place === e.g.players.length).length;
+  return [
+    ['Ø Züge pro Spiel', Math.round(turns / entries.length)],
+    ['Als Erster raus', `${last} von ${entries.length}`],
+  ];
+}
+
+function records(games) {
+  const long = games.reduce((a, g) => (!a || g.rounds > a.rounds ? g : a), null);
+  const short = games.reduce((a, g) => (!a || g.rounds < a.rounds ? g : a), null);
+  return [
+    long && { label: 'Längstes Spiel', value: `${long.rounds} Züge`, g: long },
+    short && games.length > 1 && { label: 'Kürzestes Spiel', value: `${short.rounds} Züge`, g: short },
+  ].filter(Boolean);
+}
+
 const RULES = `
   <h2>Ziel</h2>
   <p>Wer als <b>Letzter noch im Spiel</b> ist, gewinnt.</p>
@@ -604,6 +643,9 @@ export default {
   mark: { emoji: '🎲', first: 'beginnt', now: 'ist dran', verb: 'würfelt' },
   rules: RULES,
   fresh,
+  result,
+  playerStats,
+  records,
   status(s) {
     if (s.phase === 'setup') return null;
     const r = replay(s);

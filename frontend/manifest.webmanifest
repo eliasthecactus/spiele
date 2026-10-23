@@ -1,7 +1,7 @@
 {
   "name": "Spiele – Punktezähler",
   "short_name": "Spiele",
-  "description": "Punkte zählen für UNO, 10'000erlen und Sterbslen – ohne Zettel, alles lokal im Browser.",
+  "description": "Punkte zählen für UNO, 10'000erlen und Sterbslen – ohne Zettel, mit Statistik.",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

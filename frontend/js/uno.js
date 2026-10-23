@@ -5,7 +5,7 @@
  * Damit ist der nächste Mischer immer der nächste Eintrag nach dem letzten Mischer.
  */
 import {
-  game, resetGame, save, render, show, ui, toast, esc, topbar, keypad, applyKey, parseExpr,
+  game, resetGame, save, render, show, ui, toast, esc, fmt, uid, topbar, keypad, applyKey, parseExpr,
   nextAfter, setupScreen, confirmModal, numberModal, rosterPlayers, rememberPlayers, checkNames,
 } from './core.js';
 
@@ -288,7 +288,7 @@ function startGame() {
   if (!byId(s.firstId)) s.firstId = s.players[0].id;
   Object.assign(s, {
     phase: 'game', view: 'game', nextShufflerId: s.firstId, rounds: [], corrections: [],
-    draft: null, endDecision: null, startedAt: Date.now(),
+    draft: null, endDecision: null, startedAt: Date.now(), gid: uid(),
   });
   rememberPlayers(s.players);
   save();
@@ -469,6 +469,51 @@ function key(s, k) {
   render();
 }
 
+// ---------- Statistik ----------
+
+/** Schlussstand für die Statistik, sobald das Spiel beendet ist. Gleicher Stand = gleicher Platz. */
+function result(s) {
+  if (s.phase !== 'over' || !s.rounds.length) return null;
+  const t = totals();
+  const outs = {};
+  s.rounds.forEach(r => { outs[r.outId] = (outs[r.outId] || 0) + 1; });
+  return {
+    end: s.rounds[s.rounds.length - 1].ts,
+    rounds: s.rounds.length,
+    players: s.players.map(p => ({
+      name: p.name,
+      place: 1 + s.players.filter(q => t[q.id] < t[p.id]).length,
+      score: t[p.id],
+      outs: outs[p.id] || 0,
+    })),
+  };
+}
+
+const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
+
+function playerStats(entries) {
+  const rounds = sum(entries, e => e.g.rounds);
+  const outs = sum(entries, e => e.p.outs || 0);
+  return [
+    ['Runden ausgegangen', `${outs} von ${rounds}${rounds ? ` · ${Math.round((outs / rounds) * 100)}%` : ''}`],
+    ['Ø Schlussstand', fmt(Math.round(sum(entries, e => e.p.score) / entries.length))],
+    ['Bester Schlussstand', fmt(Math.min(...entries.map(e => e.p.score)))],
+  ];
+}
+
+function records(games) {
+  const all = games.flatMap(g => g.players.map(p => ({ g, p })));
+  const winners = all.filter(e => e.p.place === 1);
+  const low = winners.reduce((a, e) => (!a || e.p.score < a.p.score ? e : a), null);
+  const high = all.reduce((a, e) => (!a || e.p.score > a.p.score ? e : a), null);
+  const long = games.reduce((a, g) => (!a || g.rounds > a.rounds ? g : a), null);
+  return [
+    low && { label: 'Tiefster Siegerstand', value: fmt(low.p.score), who: low.p.name, g: low.g },
+    high && { label: 'Höchster Schlussstand', value: fmt(high.p.score), who: high.p.name, g: high.g },
+    long && { label: 'Meiste Runden', value: long.rounds, g: long },
+  ].filter(Boolean);
+}
+
 const RULES = `
   <h2>Ziel</h2>
   <p>Wer am Schluss <b>am wenigsten Punkte</b> hat, gewinnt. Gespielt wird, bis jemand <b>über 300</b> Punkte hat
@@ -509,6 +554,9 @@ export default {
   mark: { emoji: '🃏', first: 'mischt zuerst', now: 'mischt jetzt', verb: 'mischt' },
   rules: RULES,
   fresh,
+  result,
+  playerStats,
+  records,
   status(s) {
     if (s.phase === 'setup') return null;
     if (s.phase === 'over') return `Beendet nach ${s.rounds.length} Runden`;

@@ -1,0 +1,4 @@
+node_modules/
+api/data/
+container/
+.env
