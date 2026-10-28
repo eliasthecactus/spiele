@@ -1,9 +1,9 @@
 // Offline-Cache für die App-Dateien. Spielstände und Statistik liegen im localStorage, nicht hier.
-const CACHE = 'spiele-v3';
+const CACHE = 'spiele-v4';
 const ASSETS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
   'js/main.js', 'js/core.js', 'js/uno.js', 'js/zehntausend.js', 'js/sterbslen.js',
-  'js/stats.js', 'js/account.js', 'js/live.js', 'js/webauthn.js',
+  'js/stats.js', 'js/account.js', 'js/live.js', 'js/webauthn.js', 'js/egg.js',
 ];
 
 self.addEventListener('install', e => {

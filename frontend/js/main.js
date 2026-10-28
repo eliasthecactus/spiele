@@ -5,6 +5,7 @@ import zehntausend from './zehntausend.js';
 import sterbslen from './sterbslen.js';
 import './stats.js';
 import './account.js';
+import './egg.js';
 
 registerGame(uno);
 registerGame(zehntausend);

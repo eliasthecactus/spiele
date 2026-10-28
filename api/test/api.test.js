@@ -3,7 +3,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { isoCBOR } from '@simplewebauthn/server/helpers';
@@ -131,7 +131,8 @@ test('App-Dateien und Fallback auf index.html', async () => {
 test('Konto: registrieren, abgleichen, abmelden, anmelden, löschen', async () => {
   const call = client();
   const key = authenticator();
-  assert.deepEqual((await call('/api/config')).data, { origin: ORIGIN, rpId: 'localhost' });
+  const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+  assert.deepEqual((await call('/api/config')).data, { origin: ORIGIN, rpId: 'localhost', version });
   assert.equal((await call('/api/me')).status, 401);
   assert.equal((await call('/api/sync', {})).status, 401);
 
@@ -219,4 +220,10 @@ test('Laufende Spiele: neuere Änderung gewinnt, je Konto getrennt', async () =>
   const other = client();
   await register(other, authenticator());
   assert.deepEqual((await other('/api/sync', {})).data.live, []);
+});
+
+test('App und Server haben dieselbe Version', () => {
+  const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+  const core = readFileSync('../frontend/js/core.js', 'utf8');
+  assert.equal(core.match(/export const VERSION = '([^']+)'/)[1], version);
 });

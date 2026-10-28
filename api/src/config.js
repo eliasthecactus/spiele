@@ -1,5 +1,6 @@
 // Einstellungen aus Umgebungsvariablen.
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -33,3 +34,5 @@ export const DATA_DIR = process.env.DATA_DIR || path.join(here, '..', 'data');
 export const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(here, '..', '..', 'frontend');
 
 export const RP_NAME = 'Spiele';
+
+export const VERSION = JSON.parse(readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version;

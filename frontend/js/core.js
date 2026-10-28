@@ -7,6 +7,9 @@
  * melden sich mit registerPage() an.
  */
 
+// Gleich wie in api/package.json (ein Test prüft das).
+export const VERSION = '1.1.0';
+
 const STORE_KEY = 'spiele.v1';
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 10;
@@ -52,6 +55,9 @@ export function save() {
 
 // Flüchtiger UI-Zustand (Modale), wird nicht gespeichert.
 export const ui = { modal: null };
+
+// Version des Servers, sobald bekannt (account.js). Weicht sie ab, läuft eine alte App aus dem Cache.
+export const about = { server: null };
 
 // ---------- Spiele-Register ----------
 
@@ -380,6 +386,8 @@ function renderHome() {
       </div>`;
     }).join('')}
     ${Object.values(PAGES).map(p => (p.homeCard ? p.homeCard() : '')).join('')}
+    <button class="version" data-act="version">Version ${VERSION}${about.server && about.server !== VERSION
+      ? ` · Server ${esc(about.server)}, bitte neu laden` : ''}</button>
   </div>`;
 }
 

@@ -70,6 +70,10 @@ npm run dev     # http://localhost:3000, liefert ../frontend aus
 npm test        # Ende-zu-Ende-Test der Schnittstelle mit nachgebautem Passkey
 ```
 
+Die Version steht unten auf der Startseite. Bei einer neuen Version beide Stellen anpassen:
+`api/package.json` und `VERSION` in `frontend/js/core.js` (ein Test prüft, dass sie gleich sind).
+Meldet der Server eine andere Version als die App, steht dort «bitte neu laden».
+
 ## Aufbau
 
 ```
@@ -83,6 +87,7 @@ frontend/             die App (ohne Build-Schritt)
   js/stats.js         Statistik: Spiele festhalten und auswerten
   js/account.js       Online-Modus: Passkey-Anmeldung und Abgleich
   js/live.js          laufende Spiele auf andere Geräte mitnehmen
+  js/egg.js           🥚
   js/webauthn.js      Passkeys im Browser
 api/                  Server (Node, SQLite)
   src/server.js       liefert frontend/ aus, Schnittstelle unter /api

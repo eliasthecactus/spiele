@@ -4,7 +4,7 @@
  * abgeglichen und ist auf allen Geräten dieselbe. Laufende Spiele gehen mit (live.js) und lassen sich
  * auf einem anderen Gerät weiterspielen.
  */
-import { app, registerPage, save, render, toast, esc, fmt, topbar, confirmModal, goScreen } from './core.js';
+import { app, about, registerPage, save, render, toast, esc, fmt, topbar, confirmModal, goScreen } from './core.js';
 import { store, saveStore, onStatsChange, forgetAccountData } from './stats.js';
 import { supported, createPasskey, usePasskey, forgetPasskeys } from './webauthn.js';
 import { onLiveChange, livePending, liveOutgoing, liveApply } from './live.js';
@@ -38,6 +38,7 @@ async function checkServer() {
     const c = await api('config');
     net.server = true;
     net.origin = c.origin;
+    about.server = c.version || null;
   } catch {
     net.server = false;
   }
@@ -285,5 +286,5 @@ document.addEventListener('visibilitychange', () => {
       if (e.status === 401) loggedOut('Du bist nicht mehr angemeldet.');
     }
   }
-  if (app.screen === 'account') render();
+  if (['home', 'account'].includes(app.screen)) render();
 })();

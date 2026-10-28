@@ -6,7 +6,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
-import { PORT, ORIGIN, RP_ID, FRONTEND_DIR, DATA_DIR, SECRET_MISSING } from './config.js';
+import { PORT, ORIGIN, RP_ID, FRONTEND_DIR, DATA_DIR, SECRET_MISSING, VERSION } from './config.js';
 import * as auth from './auth.js';
 import * as db from './db.js';
 
@@ -63,7 +63,7 @@ function me(ctx) {
 
 const routes = {
   'GET /api/health': () => ({ ok: true }),
-  'GET /api/config': () => ({ origin: ORIGIN, rpId: RP_ID }),
+  'GET /api/config': () => ({ origin: ORIGIN, rpId: RP_ID, version: VERSION }),
   'GET /api/me': me,
   'POST /api/register/options': auth.registerOptions,
   'POST /api/register/verify': auth.registerVerify,
@@ -180,7 +180,7 @@ const server = createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Spiele läuft auf Port ${PORT} · Adresse ${ORIGIN} · Daten in ${DATA_DIR}`);
+  console.log(`Spiele ${VERSION} läuft auf Port ${PORT} · Adresse ${ORIGIN} · Daten in ${DATA_DIR}`);
   if (SECRET_MISSING) console.warn('SECRET ist nicht gesetzt – nach einem Neustart sind alle abgemeldet.');
 });
 

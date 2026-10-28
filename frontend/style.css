@@ -418,3 +418,19 @@ button.lrow:active { background: var(--surface-2); }
   opacity: 0; pointer-events: none; transition: .2s; z-index: 50; max-width: calc(100% - 32px); text-align: center;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Version (unten auf der Startseite) */
+.version {
+  align-self: center; margin-top: 8px; padding: 6px 10px; border: 0; background: none;
+  color: var(--muted); font-size: 12px; opacity: .7; -webkit-user-select: none; user-select: none;
+}
+
+/* Osterei */
+.dice-rain { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.dice-rain span {
+  position: absolute; top: -60px; color: var(--yellow); line-height: 1;
+  animation: dice-fall linear both;
+}
+@keyframes dice-fall {
+  to { transform: translateY(calc(100vh + 120px)) rotate(var(--spin)); }
+}
