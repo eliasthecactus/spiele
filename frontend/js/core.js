@@ -8,7 +8,7 @@
  */
 
 // Gleich wie in api/package.json (ein Test prüft das).
-export const VERSION = '1.1.0';
+export const VERSION = '1.1.1';
 
 const STORE_KEY = 'spiele.v1';
 export const MIN_PLAYERS = 2;
