@@ -9,7 +9,7 @@
  * kommt aus mod.result() des jeweiligen Spiels. Spieler werden über den Namen erkannt.
  */
 import {
-  app, GAMES, ui, registerPage, onSave, render, toast, esc, fmt, uid, topbar, confirmModal,
+  app, GAMES, ui, registerPage, onSave, save, render, toast, esc, fmt, uid, topbar, confirmModal,
   storageGet, storageSet,
 } from './core.js';
 
@@ -66,7 +66,7 @@ onSave(() => {
     const s = app.games[id];
     if (!s || s.phase === 'setup' || !GAMES[id].result) continue;
     if (!s.gid) s.gid = uid(); // Spiele, die vor der Statistik begonnen wurden
-    if (store.ignored.includes(s.gid)) continue;
+    if (store.ignored.includes(s.gid) || s.noStats) continue;
     const res = GAMES[id].result(s);
     any = (res ? put({ id: s.gid, game: id, start: s.startedAt || res.end, ...res }) : drop(s.gid)) || any;
   }
@@ -76,6 +76,9 @@ onSave(() => {
 function deleteGame(id) {
   drop(id);
   store.ignored = [...store.ignored, id].slice(-500); // damit ein noch offenes Spiel nicht wieder auftaucht
+  // Auch auf anderen Geräten, die diesen Spielstand übernehmen, soll es nicht wieder auftauchen.
+  const open = Object.values(app.games).find(s => s.gid === id);
+  if (open) { open.noStats = true; save(); }
   changed();
 }
 

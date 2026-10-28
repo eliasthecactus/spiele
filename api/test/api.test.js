@@ -195,3 +195,28 @@ test('Fremder Passkey kann ein Konto nicht löschen', async () => {
   assert.equal(res.status, 403);
   assert.equal((await a('/api/me')).status, 200);
 });
+
+test('Laufende Spiele: neuere Änderung gewinnt, je Konto getrennt', async () => {
+  const call = client();
+  await register(call, authenticator());
+  const live = (at, round) => ({ slot: 'uno', at, state: { phase: 'game', gid: 'gid00001', rounds: round } });
+
+  let s = await call('/api/sync', { live: [live(1000, [1])] });
+  assert.deepEqual(s.data.live, [{ slot: 'uno', at: 1000, state: live(1000, [1]).state }]);
+  // Ältere Änderung eines anderen Geräts überschreibt nichts
+  s = await call('/api/sync', { live: [live(900, [])] });
+  assert.deepEqual(s.data.live[0].state.rounds, [1]);
+  s = await call('/api/sync', { live: [live(2000, [1, 2])] });
+  assert.deepEqual(s.data.live[0].state.rounds, [1, 2]);
+  // Eine Uhr in der Zukunft wird begrenzt
+  s = await call('/api/sync', { live: [live(Date.now() + 86400000, [1, 2, 3])] });
+  assert.ok(s.data.live[0].at <= Date.now() + 60000);
+
+  assert.equal((await call('/api/sync', { live: [{ slot: 'UNO!', at: 1, state: {} }] })).status, 400);
+  assert.equal((await call('/api/sync', { live: [{ slot: 'uno', at: 1, state: [] }] })).status, 400);
+  assert.equal((await call('/api/sync', { live: [{ slot: 'uno', at: 'x', state: {} }] })).status, 400);
+
+  const other = client();
+  await register(other, authenticator());
+  assert.deepEqual((await other('/api/sync', {})).data.live, []);
+});

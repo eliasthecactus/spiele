@@ -1,4 +1,4 @@
-// SQLite-Datenbank: Konten, Passkeys und abgeschlossene Spiele (für die Statistik).
+// SQLite-Datenbank: Konten, Passkeys, abgeschlossene Spiele (für die Statistik) und laufende Spielstände.
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -31,6 +31,14 @@ db.exec(`
     updated INTEGER NOT NULL,
     PRIMARY KEY (user_id, id)
   );
+  -- Laufender Spielstand pro Spiel (uno, zehntausend, …), damit er auf einem anderen Gerät weitergeht.
+  CREATE TABLE IF NOT EXISTS live (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    slot    TEXT NOT NULL,
+    data    TEXT NOT NULL,
+    at      INTEGER NOT NULL,
+    PRIMARY KEY (user_id, slot)
+  );
 `);
 
 const q = {
@@ -47,6 +55,10 @@ const q = {
   upsertGame: db.prepare(`INSERT INTO games (user_id, id, data, updated) VALUES (?, ?, ?, ?)
     ON CONFLICT (user_id, id) DO UPDATE SET data = excluded.data, updated = excluded.updated`),
   deleteGame: db.prepare('DELETE FROM games WHERE user_id = ? AND id = ?'),
+  live: db.prepare('SELECT slot, at, data FROM live WHERE user_id = ?'),
+  // Die neuere Änderung gewinnt.
+  upsertLive: db.prepare(`INSERT INTO live (user_id, slot, data, at) VALUES (?, ?, ?, ?)
+    ON CONFLICT (user_id, slot) DO UPDATE SET data = excluded.data, at = excluded.at WHERE excluded.at > live.at`),
 };
 
 const toCredential = row => row && {
@@ -80,10 +92,14 @@ export const useCredential = (id, counter) => q.useCredential.run(counter, Date.
 export const listGames = userId => q.games.all(userId).map(r => JSON.parse(r.data));
 export const countGames = userId => q.countGames.get(userId).n;
 
-export function applySync(userId, upsert, remove) {
+export const listLive = userId => q.live.all(userId).map(r => ({ slot: r.slot, at: r.at, state: JSON.parse(r.data) }));
+
+export function applySync(userId, upsert, remove, live = []) {
   tx(() => {
     const now = Date.now();
     for (const g of upsert) q.upsertGame.run(userId, g.id, JSON.stringify(g), now);
     for (const id of remove) q.deleteGame.run(userId, id);
+    // Eine vorgehende Uhr soll nicht für immer gewinnen.
+    for (const l of live) q.upsertLive.run(userId, l.slot, JSON.stringify(l.state), Math.min(l.at, now + 60000));
   });
 }

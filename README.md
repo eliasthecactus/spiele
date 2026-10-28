@@ -57,7 +57,9 @@ Freiwillig. Ohne Anmeldung bleibt alles auf dem Gerät, genau wie bisher.
   Spiele, die schon auf dem Gerät waren, kommen beim Anmelden mit ins Konto.
 - Beim Abmelden verschwindet die Statistik vom Gerät und ist nach dem nächsten Anmelden wieder da.
 - **Konto löschen** verlangt nochmals den Passkey und entfernt das Konto mit allen Daten.
-- Laufende Spielstände bleiben immer auf dem Gerät.
+- **Laufende Spiele** gehen mit: Ein Spiel, das auf einem Gerät läuft, lässt sich auf einem anderen
+  angemeldeten Gerät weiterspielen. Pro Spiel gibt es einen Stand, die neuere Änderung gewinnt.
+  Ansicht, halb eingetippte Eingaben und die Spielerfassung vor dem Start bleiben auf dem Gerät.
 
 ## Entwickeln
 
@@ -80,6 +82,7 @@ frontend/             die App (ohne Build-Schritt)
   js/sterbslen.js     Sterbslen
   js/stats.js         Statistik: Spiele festhalten und auswerten
   js/account.js       Online-Modus: Passkey-Anmeldung und Abgleich
+  js/live.js          laufende Spiele auf andere Geräte mitnehmen
   js/webauthn.js      Passkeys im Browser
 api/                  Server (Node, SQLite)
   src/server.js       liefert frontend/ aus, Schnittstelle unter /api

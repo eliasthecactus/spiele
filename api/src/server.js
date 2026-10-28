@@ -1,5 +1,5 @@
 /*
- * Ein Server für alles: /api/* ist die Schnittstelle für Konto und Statistik,
+ * Ein Server für alles: /api/* ist die Schnittstelle für Konto, Statistik und laufende Spiele,
  * alles andere sind die Dateien der App (Ordner frontend/).
  */
 import { createServer } from 'node:http';
@@ -15,6 +15,8 @@ const MAX_BODY = 2 * 1024 * 1024;
 const MAX_GAMES = 20000;
 const MAX_GAME_SIZE = 20000;
 const MAX_BATCH = 1000;
+const MAX_LIVE = 20;
+const MAX_LIVE_SIZE = 200000;
 
 // ---------- Statistik ----------
 
@@ -27,18 +29,31 @@ function checkGame(g) {
   return JSON.stringify(g).length <= MAX_GAME_SIZE;
 }
 
-/** Abgleich: neue/geänderte Spiele speichern, gelöschte entfernen, dann alle Spiele zurückgeben. */
+/** Laufender Spielstand: { slot, at, state }, `at` = Zeitpunkt der letzten Änderung. */
+function checkLive(l) {
+  if (!l || typeof l !== 'object' || typeof l.slot !== 'string' || !/^[a-z0-9-]{1,30}$/.test(l.slot)) return false;
+  if (!Number.isSafeInteger(l.at) || l.at <= 0) return false;
+  if (!l.state || typeof l.state !== 'object' || Array.isArray(l.state)) return false;
+  return JSON.stringify(l.state).length <= MAX_LIVE_SIZE;
+}
+
+/**
+ * Abgleich: neue/geänderte Spiele speichern, gelöschte entfernen, laufende Spielstände übernehmen,
+ * dann alles zurückgeben.
+ */
 function sync(ctx) {
   const userId = auth.requireUser(ctx);
   const upsert = ctx.body.upsert || [];
   const remove = ctx.body.remove || [];
-  if (!Array.isArray(upsert) || !Array.isArray(remove) || upsert.length > MAX_BATCH || remove.length > MAX_BATCH) {
+  const live = ctx.body.live || [];
+  if (!Array.isArray(upsert) || !Array.isArray(remove) || upsert.length > MAX_BATCH || remove.length > MAX_BATCH
+    || !Array.isArray(live) || live.length > MAX_LIVE) {
     throw new HttpError(400, 'Ungültige Daten');
   }
-  if (!upsert.every(checkGame) || !remove.every(isId)) throw new HttpError(400, 'Ungültige Spieldaten');
+  if (!upsert.every(checkGame) || !remove.every(isId) || !live.every(checkLive)) throw new HttpError(400, 'Ungültige Spieldaten');
   if (db.countGames(userId) + upsert.length > MAX_GAMES) throw new HttpError(413, 'Zu viele Spiele gespeichert');
-  db.applySync(userId, upsert, remove);
-  return { games: db.listGames(userId) };
+  db.applySync(userId, upsert, remove, live);
+  return { games: db.listGames(userId), live: db.listLive(userId) };
 }
 
 function me(ctx) {

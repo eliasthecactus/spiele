@@ -1,11 +1,13 @@
 /*
  * Online-Modus: freiwilliges Konto, nur mit Passkey. Kein Name, keine E-Mail, kein Passwort, kein Profil.
  * Ohne Anmeldung läuft alles wie bisher lokal. Mit Anmeldung wird die Statistik mit dem Server
- * abgeglichen und ist auf allen Geräten dieselbe. Spielstände laufender Spiele bleiben auf dem Gerät.
+ * abgeglichen und ist auf allen Geräten dieselbe. Laufende Spiele gehen mit (live.js) und lassen sich
+ * auf einem anderen Gerät weiterspielen.
  */
 import { app, registerPage, save, render, toast, esc, fmt, topbar, confirmModal, goScreen } from './core.js';
 import { store, saveStore, onStatsChange, forgetAccountData } from './stats.js';
 import { supported, createPasskey, usePasskey, forgetPasskeys } from './webauthn.js';
+import { onLiveChange, livePending, liveOutgoing, liveApply } from './live.js';
 
 const BADGE = '<span class="logo home">☁️</span>';
 
@@ -64,9 +66,9 @@ function schedule(ms = 1500) {
   timer = setTimeout(() => sync(), ms);
 }
 
-const pending = () => Object.keys(store.dirty).length + store.removed.length;
+const pending = () => Object.keys(store.dirty).length + store.removed.length + livePending();
 
-/** Schickt Neues und Gelöschtes zum Server und übernimmt danach dessen Stand. */
+/** Schickt Neues und Gelöschtes samt laufender Spiele zum Server und übernimmt danach dessen Stand. */
 export async function sync({ keepalive = false } = {}) {
   if (!acc().loggedIn) return;
   if (net.syncing) { again = true; return; }
@@ -74,8 +76,9 @@ export async function sync({ keepalive = false } = {}) {
   const sent = { ...store.dirty };
   const upsert = store.games.filter(g => sent[g.id]);
   const remove = [...store.removed];
+  const live = liveOutgoing();
   try {
-    const body = { upsert, remove };
+    const body = { upsert, remove, live: live.map(({ hash, ...l }) => l) };
     const res = await api('sync', body, { keepalive: keepalive && JSON.stringify(body).length < 60000 });
     // Was während der Anfrage lokal dazukam oder geändert wurde, bleibt für den nächsten Abgleich.
     const stillDirty = store.games.filter(g => store.dirty[g.id] && store.dirty[g.id] !== sent[g.id]);
@@ -89,6 +92,7 @@ export async function sync({ keepalive = false } = {}) {
     store.lastSync = Date.now();
     net.error = null;
     saveStore();
+    liveApply(res.live, live);
   } catch (e) {
     if (e.status === 401) loggedOut('Du bist nicht mehr angemeldet.');
     else net.error = e.status ? e.message : 'offline';
@@ -161,7 +165,7 @@ const login = () => busy(async () => {
 function logout() {
   const open = pending();
   confirmModal('Abmelden?',
-    `Die Statistik bleibt in deinem Konto und ist nach dem nächsten Anmelden wieder da. Auf diesem Gerät wird sie ausgeblendet.${open ? ' Zuerst wird noch abgeglichen.' : ''}`,
+    `Die Statistik bleibt in deinem Konto und ist nach dem nächsten Anmelden wieder da. Auf diesem Gerät wird sie ausgeblendet, laufende Spiele bleiben.${open ? ' Zuerst wird noch abgeglichen.' : ''}`,
     'Abmelden', () => busy(async () => {
       await sync();
       await api('logout', {}).catch(() => {});
@@ -193,7 +197,7 @@ function renderAccount() {
       <div class="acct-hero">
         <div class="big">🔑</div>
         <b>Statistik sichern und überall dabei haben</b>
-        <span>Mit einem Konto ist deine Statistik gesichert und auf allen deinen Geräten dieselbe.</span>
+        <span>Mit einem Konto ist deine Statistik gesichert und auf allen deinen Geräten dieselbe. Ein angefangenes Spiel geht auf dem anderen Gerät weiter.</span>
       </div>
       <ul class="checks">
         <li>Kein Name, keine E-Mail, kein Passwort – nur ein <b>Passkey</b> (Face ID, Fingerabdruck oder Geräte-PIN).</li>
@@ -218,7 +222,7 @@ function renderAccount() {
     <div class="acct-hero on">
       <div class="big">✓</div>
       <b>Angemeldet</b>
-      <span>Deine Statistik wird automatisch mit deinem Konto abgeglichen.</span>
+      <span>Deine Statistik und laufende Spiele werden automatisch mit deinem Konto abgeglichen.</span>
     </div>
     <div class="kv">
       <div><span>Konto seit</span><b>${acc().since ? new Date(acc().since).toLocaleDateString('de-CH') : '–'}</b></div>
@@ -262,6 +266,7 @@ registerPage({ id: 'account', render: renderAccount, homeCard, act });
 // ---------- Start & Auslöser ----------
 
 onStatsChange(() => schedule());
+onLiveChange(() => schedule());
 window.addEventListener('online', () => schedule(0));
 document.addEventListener('visibilitychange', () => {
   if (!acc().loggedIn) return;
