@@ -1,0 +1,47 @@
+# Jeder Push auf main erhöht die Patch-Version und committet sie zurück.
+# Wer selbst eine neue Version setzt (z.B. 1.2.0 in api/package.json), behält sie: dann wird nichts erhöht.
+# Pushes mit GITHUB_TOKEN lösen keine Workflows aus, der Versions-Commit startet diesen also nicht nochmals.
+name: Version
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Version von Hand gesetzt?
+        id: manual
+        run: |
+          before="${{ github.event.before }}"
+          if git cat-file -e "$before" 2>/dev/null \
+            && [ "$(git show "$before:api/package.json" | jq -r .version)" != "$(jq -r .version api/package.json)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Version wurde in diesem Push gesetzt: $(jq -r .version api/package.json)"
+          fi
+
+      - name: Patch erhöhen und committen
+        if: steps.manual.outputs.skip != 'true'
+        run: |
+          git pull --rebase origin main
+          version=$(node .github/bump-version.mjs)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Version $version"
+          git push origin HEAD:main

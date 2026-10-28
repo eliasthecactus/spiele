@@ -70,9 +70,12 @@ npm run dev     # http://localhost:3000, liefert ../frontend aus
 npm test        # Ende-zu-Ende-Test der Schnittstelle mit nachgebautem Passkey
 ```
 
-Die Version steht unten auf der Startseite. Bei einer neuen Version beide Stellen anpassen:
-`api/package.json` und `VERSION` in `frontend/js/core.js` (ein Test prüft, dass sie gleich sind).
-Meldet der Server eine andere Version als die App, steht dort «bitte neu laden».
+Die Version steht unten auf der Startseite. Meldet der Server eine andere Version als die App,
+steht dort «bitte neu laden».
+
+Jeder Push auf `main` erhöht die Patch-Version automatisch (GitHub Action `version.yml`, committet
+«Version x.y.z» zurück, danach also `git pull`). Für eine neue Minor- oder Major-Version:
+`node .github/bump-version.mjs 1.2.0`, committen und pushen. Dann wird in diesem Push nichts erhöht.
 
 ## Aufbau
 
